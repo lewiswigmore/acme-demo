@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+.env*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+data/
+test-data/
+test-data-unit-*/
+*.tsbuildinfo
+next-env.d.ts
