@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Order, Product } from "../lib/store";
 
 async function getData<T>(path: string): Promise<T> {
@@ -22,6 +22,10 @@ export function Shop() {
   const [quantity, setQuantity] = useState("1");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [orderQuery, setOrderQuery] = useState("");
+  const activeOrderQuery = useRef("");
+  const orderRequest = useRef(0);
 
   const loadProducts = useCallback(async () => {
     setProductState("loading");
@@ -35,21 +39,35 @@ export function Shop() {
     }
   }, []);
 
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (query: string) => {
+    const requestId = ++orderRequest.current;
     setOrderState("loading");
     try {
-      const data = await getData<{ orders: Order[] }>("/api/orders");
+      const params = new URLSearchParams({ q: query });
+      const data = await getData<{ orders: Order[] }>(`/api/orders?${params}`);
+      if (requestId !== orderRequest.current) return;
       setOrders(data.orders);
       setOrderState("ready");
     } catch {
+      if (requestId !== orderRequest.current) return;
       setOrderState("error");
     }
   }, []);
 
   useEffect(() => {
     void loadProducts();
-    void loadOrders();
-  }, [loadProducts, loadOrders]);
+  }, [loadProducts]);
+
+  useEffect(() => {
+    void loadOrders(orderQuery);
+  }, [loadOrders, orderQuery]);
+
+  function searchOrders(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    activeOrderQuery.current = search;
+    if (search === orderQuery) void loadOrders(search);
+    else setOrderQuery(search);
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,7 +86,7 @@ export function Shop() {
       if (!response.ok) throw new Error("Request failed");
       setMessage("Order created.");
       setQuantity("1");
-      await loadOrders();
+      await loadOrders(activeOrderQuery.current);
     } catch {
       setMessage(
         "Could not create the order. Your selection is still here; please try again.",
@@ -247,6 +265,19 @@ export function Shop() {
               <p>Stored locally on this machine. Showing up to 100 orders.</p>
             </div>
           </div>
+          <form className="order-search" onSubmit={searchOrders}>
+            <label htmlFor="order-search">Search orders by product name</label>
+            <div className="order-search-controls">
+              <input
+                id="order-search"
+                type="search"
+                maxLength={120}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <button type="submit">Search</button>
+            </div>
+          </form>
           {orderState === "loading" && <p role="status">Loading orders…</p>}
           {orderState === "error" && (
             <p role="alert">
@@ -254,7 +285,7 @@ export function Shop() {
               <button
                 className="text-button"
                 type="button"
-                onClick={loadOrders}
+                onClick={() => void loadOrders(orderQuery)}
               >
                 Try again
               </button>
@@ -263,8 +294,14 @@ export function Shop() {
           {orderState === "ready" && orders.length === 0 && (
             <div className="empty">
               <div>
-                <strong>No orders yet.</strong>
-                <p>Create an order to see it here.</p>
+                <strong>
+                  {orderQuery ? "No matching orders." : "No orders yet."}
+                </strong>
+                <p>
+                  {orderQuery
+                    ? "Try a different product name or clear the search."
+                    : "Create an order to see it here."}
+                </p>
               </div>
             </div>
           )}

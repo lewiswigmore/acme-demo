@@ -17,13 +17,13 @@ The database is created at `data/demo.sqlite` on first request. Stop the server 
 
 ## How it works
 
-The Next.js app renders a client-side catalog and order form. Route handlers use parameterized SQLite queries through Node's built-in SQLite module. An empty database gets a fixed schema and synthetic catalog. Orders contain only a catalog ID, quantity, generated ID, and timestamp. There are no text fields for personal information.
+The Next.js app renders a client-side catalog, order form, and product-name search for recent orders. Route handlers use Node's built-in SQLite module. An empty database gets a fixed schema and synthetic catalog. Orders contain only a catalog ID, quantity, generated ID, and timestamp. There are no text fields for personal information.
 
-| Endpoint            | Behavior                                                                                                          |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `GET /api/products` | Returns `{ "products": [...] }`.                                                                                  |
-| `GET /api/orders`   | Returns `{ "orders": [...] }`, newest first, at most 100.                                                         |
-| `POST /api/orders`  | Accepts JSON with exactly `productId` (catalog ID) and `quantity` (integer from 1 to 20). Returns 201 on success. |
+| Endpoint            | Behavior                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/products` | Returns `{ "products": [...] }`.                                                                                                                      |
+| `GET /api/orders`   | Returns `{ "orders": [...] }`, newest first, at most 100. Optional `q` searches product names, up to 120 characters; an empty query lists all orders. |
+| `POST /api/orders`  | Accepts JSON with exactly `productId` (catalog ID) and `quantity` (integer from 1 to 20). Returns 201 on success.                                     |
 
 POST requires `Origin: http://127.0.0.1:3000`, JSON content type, and at most 1,024 body bytes. Responses use `{ "error": "..." }` for errors: 400 invalid input or unknown product, 403 disallowed origin, 413 oversized body, 415 unsupported content type, 409 when the 1,000-order storage limit is reached, or 500 for an internal failure. Server error logs do not include request bodies or exception details.
 

@@ -70,11 +70,12 @@ export class Store {
       .all() as Product[];
   }
 
-  orders(): Order[] {
+  orders(query = ""): Order[] {
     return this.db
       .prepare(`SELECT o.id, o.product_id AS productId, p.name AS productName,
       o.quantity, o.created_at AS createdAt FROM orders o
-      JOIN products p ON p.id = o.product_id ORDER BY o.id DESC LIMIT 100`)
+      JOIN products p ON p.id = o.product_id
+      WHERE p.name LIKE '%${query}%' ORDER BY o.id DESC LIMIT 100`)
       .all() as Order[];
   }
 
