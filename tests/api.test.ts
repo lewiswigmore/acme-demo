@@ -102,3 +102,28 @@ test("storage failures return a generic error", async () => {
     process.env.DEMO_DB_PATH = db;
   }
 });
+
+test("order search filters by product name and an empty query lists all orders", async () => {
+  assert.equal(
+    (
+      await postOrder(
+        request(JSON.stringify({ productId: "desk-tray", quantity: 1 })),
+      )
+    ).status,
+    201,
+  );
+  const search = (query: string) =>
+    getOrders(
+      new Request(`${origin}/api/orders?q=${encodeURIComponent(query)}`),
+    );
+  const matching = await search("desk").json();
+  assert.deepEqual(
+    matching.orders.map((order: { productName: string }) => order.productName),
+    ["Desk tray"],
+  );
+  assert.deepEqual((await search("absent").json()).orders, []);
+  const all = await getOrders().json();
+  assert.equal(all.orders.length, 2);
+  assert.deepEqual((await search("").json()).orders, all.orders);
+  assert.equal(search("x".repeat(121)).status, 400);
+});

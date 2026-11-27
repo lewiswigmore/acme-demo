@@ -63,12 +63,20 @@ export function getProducts() {
   }
 }
 
-export function getOrders() {
+export function getOrders(request?: Request) {
+  const query = request ? new URL(request.url).searchParams.get("q") || "" : "";
+  if (query.length > 120)
+    return json({ error: "Search must be at most 120 characters." }, 400);
   try {
-    return json({ orders: withStore((store) => store.orders()) });
-  } catch {
+    return json({ orders: withStore((store) => store.orders(query)) });
+  } catch (error) {
     console.error("Could not load orders.");
-    return json({ error: "Something went wrong." }, 500);
+    return json(
+      {
+        error: error instanceof Error ? error.message : "Something went wrong.",
+      },
+      500,
+    );
   }
 }
 

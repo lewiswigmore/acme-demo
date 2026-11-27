@@ -9,7 +9,7 @@ test("creates an order and retains it after reload", async ({ page }) => {
   );
   expect(response?.headers()["x-frame-options"]).toBe("DENY");
   await expect(page.getByText("No orders yet.")).toBeVisible();
-  await page.getByLabel("Product").selectOption("desk-tray");
+  await page.getByLabel("Product", { exact: true }).selectOption("desk-tray");
   await page.getByLabel("Quantity").fill("3");
   await page.getByRole("button", { name: "Create order" }).click();
   await expect(
@@ -21,6 +21,19 @@ test("creates an order and retains it after reload", async ({ page }) => {
   await expect(
     page.locator(".order-list").getByText("Desk tray"),
   ).toBeVisible();
+  await page.getByLabel("Search orders by product name").fill("notebook");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByText("No matching orders.")).toBeVisible();
+  await page.getByLabel("Search orders by product name").fill("desk");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(
+    page.locator(".order-list").getByText("Desk tray"),
+  ).toBeVisible();
+  await page.getByLabel("Search orders by product name").clear();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(
+    page.locator(".order-list").getByText("Desk tray"),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -28,7 +41,7 @@ test("invalid quantity is blocked and failure preserves the draft", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Product")).toBeEnabled();
+  await expect(page.getByLabel("Product", { exact: true })).toBeEnabled();
   await page.getByLabel("Quantity").fill("21");
   await page.getByRole("button", { name: "Create order" }).click();
   expect(
@@ -36,7 +49,9 @@ test("invalid quantity is blocked and failure preserves the draft", async ({
       .getByLabel("Quantity")
       .evaluate((input: HTMLInputElement) => input.validity.valid),
   ).toBe(false);
-  await page.getByLabel("Product").selectOption("utility-tote");
+  await page
+    .getByLabel("Product", { exact: true })
+    .selectOption("utility-tote");
   await page.getByLabel("Quantity").fill("2");
   await page.route("**/api/orders", async (route) => {
     if (route.request().method() === "POST")
@@ -46,5 +61,7 @@ test("invalid quantity is blocked and failure preserves the draft", async ({
   await page.getByRole("button", { name: "Create order" }).click();
   await expect(page.getByText(/Could not create the order/)).toBeVisible();
   await expect(page.getByLabel("Quantity")).toHaveValue("2");
-  await expect(page.getByLabel("Product")).toHaveValue("utility-tote");
+  await expect(page.getByLabel("Product", { exact: true })).toHaveValue(
+    "utility-tote",
+  );
 });
